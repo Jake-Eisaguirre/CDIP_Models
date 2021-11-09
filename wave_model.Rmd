@@ -1,0 +1,329 @@
+---
+title: "Untitled"
+author: "Jake Eisaguirre"
+date: "10/24/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(leafem) 
+library(terra)
+library(raster)
+library(sp)
+library(here)
+library(stars)
+library(lubridate)
+library(tidyverse)
+library(rasterVis)
+library(shiny)
+library(leaflet)
+library(patchwork)
+library(plotly)
+library(rgdal)
+library(terra)
+library(rasterVis)
+library(animation)
+library(htmlwidgets)
+```
+
+# Read in and subset data for variable and ROI
+```{r}
+url <- "http://thredds.cdip.ucsd.edu//thredds/fileServer/cdip/model/MOP_grids/CA_0.01_forecast.nc"
+
+options(timeout = 10000)
+
+data <- download.file(url, "/Users/JaketheBoss/Desktop/wave_data.nc")
+
+data_set <- "wave_data.nc"
+
+
+waves <- rast(data_set, sub = "waveHs")
+ROI <- ext(-121.0062, -118.7438, 33.10625, 34.90625)
+wave_crop <- crop(waves, ROI)
+
+```
+
+
+# Shape Files
+```{r}
+islands <- read_sf(here("/Users","JaketheBoss", "Documents", "Bren", "SST Code", 
+                        "SST", "SST", "data", "shape", "channel_islands.shp")) %>% 
+  mutate(geometry = st_transform(geometry, crs = 4326)) %>% 
+  filter(!NAME %in% c("Santa Catalina", "San Clemente"))
+
+ca <- read_sf(here("/Users","JaketheBoss", "Documents", "Bren", 
+                   "SST Code", "SST", "SST", "s_11au16", "s_11au16.shp")) %>% 
+  mutate(geometry = st_transform(geometry, crs = 4326)) %>% 
+  filter(NAME == "California")
+```
+
+
+# Clean dates and re-sample
+```{r}
+remove_txt <- gsub("waveHs_waveTime.", "", names(wave_crop)) %>% 
+  as.numeric() %>% 
+  as_datetime()
+
+names(wave_crop) <- c(remove_txt)
+
+names(wave_crop)
+
+
+
+raz_temp <- rast(xmin = -121.0062,
+                      xmax = -118.7438,
+                      ymin = 33.10625,
+                      ymax = 34.90625,
+                      resolution = c(0.001, 0.001))
+
+brick_resample <- resample(wave_crop, raz_temp)
+
+names(brick_resample)
+
+
+
+wave_pal <- colorRampPalette(c("blue", "cyan", "yellow", "red"))
+
+plot(brick_resample, col = wave_pal(10))
+
+brick_resample <- brick(brick_resample)
+
+    
+
+```
+
+#leaflet map
+```{r}
+
+base_map <- leaflet(options = leafletOptions(minZoom = 8.5)) %>% 
+  addPolygons(data = islands, color = 'black', opacity = 1, weight = 2, fill = F)%>% 
+  addPolygons(data = ca, color = 'black', opacity = 1, weight = 2, fill = F) %>%
+  addProviderTiles("Esri.OceanBasemap") %>% 
+  setView(lng = -119.700336, lat = 34.14, zoom = 8.5)
+  
+
+base_map
+
+add_data <- addRasterImage(base_map, t_1, group = "t_1", colors = wave_pal(5)) %>% 
+  addLayersControl(
+      baseGroups = c("t_1","t_2","t_3","t_4","t_5","t_6","t_7","t_8","t_9",
+                     "t_10","t_11","t_12","t_13","t_14","t_15","t_16"),
+      options = layersControlOptions(collapsed = FALSE))%>% 
+    setView(lng = -119.200336, lat = 34.14, zoom = 9) %>% 
+    setMaxBounds(lng1 = -121.0,
+                 lat1 = 33.1125,
+                 lng2 = -118.75,
+                 lat2 = 34.9) 
+
+names(brick_resample)
+```
+
+#Shiny App
+```{r}
+
+library(shiny)
+ui <- fluidPage(
+  
+  titlePanel("Wave Model"),
+  
+  leafletOutput("brick_resample", height = 500),
+  
+  selectInput("names", "Select Date Range",
+              names(brick_resample))
+  
+)
+
+server <- function(input, output, session){
+  
+  #Reactive
+   slid <- reactive({
+     brick_resample$names$data_set
+     #brick_resample$names
+     #names(brick_resample)
+     #brick_resample[names]
+   })
+
+
+  #Map
+  output$brick_resample <- renderLeaflet({
+    
+    leaflet(options = leafletOptions(minZoom = 8.5)) %>% 
+      addPolygons(data = islands, color = 'black', opacity = 1, weight = 2, fill = F)%>% 
+      addPolygons(data = ca, color = 'black', opacity = 1, weight = 2, fill = F)%>%
+      addProviderTiles("Esri.OceanBasemap") %>% 
+      addRasterImage(x = slid(), colors = wave_pal(5)) %>% 
+        setView(lng = -119.200336, lat = 34.14, zoom = 9) %>% 
+        setMaxBounds(lng1 = -121.0,
+                 lat1 = 33.1125,
+                 lng2 = -118.75,
+                 lat2 = 34.9)
+    })
+}
+
+shinyApp(ui = ui, server = server)
+  
+```
+
+#random data exploration
+```{r}
+t_1 <- subset(wave_crop, 1:1)
+t_2 <- subset(brick_resample, 2:2)
+t_3 <- subset(brick_resample, 3:3)
+t_4 <- subset(brick_resample, 4:4)
+t_5 <- subset(brick_resample, 5:5)
+t_6 <- subset(brick_resample, 6:6)
+t_7 <- subset(brick_resample, 7:7)
+t_8 <- subset(brick_resample, 8:8)
+t_9 <- subset(brick_resample, 9:9)
+t_10 <- subset(brick_resample, 10:10)
+t_11 <- subset(brick_resample, 11:11)
+t_12 <- subset(brick_resample, 12:12)
+t_13 <- subset(brick_resample, 13:13)
+t_14 <- subset(brick_resample, 14:14)
+t_15 <- subset(brick_resample, 15:15)
+t_16 <- subset(brick_resample, 16:16)
+
+leaflet(options = leafletOptions(minZoom = 8.5)) %>% 
+    addPolygons(data = islands, color = 'black', opacity = 1, weight = 2, fill = F)%>% 
+      addPolygons(data = ca, color = 'black', opacity = 1, weight = 2, fill = F) %>%
+      addProviderTiles("Esri.OceanBasemap") %>% 
+      setView(lng = -119.700336, lat = 34.14, zoom = 8.5) %>% 
+      addRasterImage(brick_resample, group = ~names, colors = wave_pal(5)) %>% 
+    # addRasterImage(t_2, group = "t_2", colors = wave_pal(5)) %>% 
+    # addRasterImage(t_3, group = "t_3", colors = pal(5)) %>% 
+    # addRasterImage(t_4, group = "t_4", colors = pal(5)) %>% 
+    # addRasterImage(t_5, group = "t_5", colors = pal(5)) %>% 
+    # addRasterImage(t_6, group = "t_6", colors = pal(5)) %>% 
+    # addRasterImage(t_7, group = "t_7", colors = pal(5)) %>% 
+    # addRasterImage(t_8, group = "t_8", colors = pal(5)) %>% 
+    # addRasterImage(t_9, group = "t_9", colors = pal(5)) %>% 
+    # addRasterImage(t_10, group = "t_10", colors = pal(5)) %>% 
+    # addRasterImage(t_11, group = "t_11", colors = pal(5)) %>% 
+    # addRasterImage(t_12, group = "t_12", colors = pal(5)) %>% 
+    # addRasterImage(t_13, group = "t_13", colors = pal(5)) %>% 
+    # addRasterImage(t_14, group = "t_14", colors = pal(5)) %>% 
+    # addRasterImage(t_15, group = "t_15", colors = pal(5)) %>% 
+    # addRasterImage(t_16, group = "t_16", colors = pal(5)) %>% 
+        addLayersControl(
+      baseGroups = c("t_1","t_2","t_3","t_4","t_5","t_6","t_7","t_8","t_9",
+                     "t_10","t_11","t_12","t_13","t_14","t_15","t_16"),
+      options = layersControlOptions(collapsed = FALSE))%>% 
+    setView(lng = -119.200336, lat = 34.14, zoom = 9) %>% 
+    setMaxBounds(lng1 = -121.0,
+                 lat1 = 33.1125,
+                 lng2 = -118.75,
+                 lat2 = 34.9) 
+
+
+wave_app
+saveWidget(wave_app, file= "wave_app.html", selfcontained = T)
+
+%>% 
+  addLegend(data = brick_resample, pal = pal, title = 'Wave Height (m)', 
+            position = "bottomright",
+            values = values(brick_resample))
+
+print(brick_resample)
+```
+
+#create df and sf (not needed)
+```{r}
+
+print(wave)
+remove_txt_wave <- gsub("waveHs_waveTime.", "", names(wave))
+
+remove_txt_wave <- as.numeric(remove_txt_wave)
+
+time_wave <- as_datetime(remove_txt_wave)
+
+names(wave) <- c(time_wave)
+
+
+df <- wave %>% 
+  rasterToPoints() %>% 
+  data.frame() %>% 
+  as.data.frame() %>% 
+  rename(Latitude = x) %>% 
+  rename(Longitude = y)
+
+names(df) <- gsub("X", "", names(df))
+
+df<- df %>%  
+  pivot_longer(-c(Latitude, Longitude))
+
+df$name <- as_datetime(df$name)
+  
+
+df <- df %>% 
+  rename(Time = name) %>% 
+  rename(waveHs = value)
+
+sf <- st_as_sf(df, coords = c("Longitude", "Latitude"), crs = 4326)
+
+
+base_map <- ggplot() +
+  geom_sf(data = ca, color = "black", fill = "grey60") +
+  coord_sf(xlim = c(-120.69999999999999, -118.75), ylim = c(33.1125, 34.9), expand = FALSE) +
+  theme_classic()
+
+
+add_data_map <- base_map +
+  geom_sf(data = sf, aes(fill = waveHs)) +
+  coord_sf(xlim = c(-120.69999999999999, -118.75), ylim = c(33.1125, 34.9), expand = FALSE)
+
+add_data_map
+
+time_frame <- max(df$Time) - min(df$Time)
+
+
+model <- ggplotly(add_data_map)
+
+htmlwidgets::saveWidget(as_widget(model), "model.html")
+
+
+print(time_frame)
+
+```
+
+# old ggplot code
+```{r}
+# time_6 <- ggplot() +
+#   geom_raster(data = df_6, aes(y=y, x=x, fill = X1635530400), interpolate = T) +
+#   scale_fill_gradientn(colours = c("blue", "cyan", "green", "yellow", "red")) +
+#   geom_sf(data = ca, color = "black", fill = "grey60") +
+#   coord_sf(xlim = c(-120.69999999999999, -118.75), ylim = c(33.1125, 34.9), expand = FALSE)
+# 
+# head(df_5)
+# time_5 <- ggplot() +
+#   geom_raster(data = df_5, aes(y=y, x=x, fill = X1635526800), interpolate = T) +
+#   scale_fill_gradientn(colours = c("blue", "cyan", "green", "yellow", "red")) +
+#   geom_sf(data = ca, color = "black", fill = "grey60") +
+#   coord_sf(xlim = c(-120.69999999999999, -118.75), ylim = c(33.1125, 34.9), expand = FALSE)
+# 
+# time_4 <- ggplot() +
+#   geom_raster(data = df_4, aes(y=y, x=x, fill = X1635523200), interpolate = T) +
+#   scale_fill_gradientn(colours = c("blue", "cyan", "green", "yellow", "red")) +
+#   geom_sf(data = ca, color = "black", fill = "grey60") +
+#   coord_sf(xlim = c(-120.69999999999999, -118.75), ylim = c(33.1125, 34.9), expand = FALSE)
+# 
+# time_3 <- ggplot() +
+#   geom_raster(data = df_3, aes(y=y, x=x, fill = X1635519600), interpolate = T) +
+#   scale_fill_gradientn(colours = c("blue", "cyan", "green", "yellow", "red")) +
+#   geom_sf(data = ca, color = "black", fill = "grey60") +
+#   coord_sf(xlim = c(-120.69999999999999, -118.75), ylim = c(33.1125, 34.9), expand = FALSE)
+# 
+# time_2 <- ggplot() +
+#   geom_raster(data = df_2, aes(y=y, x=x, fill = X1635516000), interpolate = T) +
+#   scale_fill_gradientn(colours = c("blue", "cyan", "green", "yellow", "red")) +
+#   geom_sf(data = ca, color = "black", fill = "grey60") +
+#   coord_sf(xlim = c(-120.69999999999999, -118.75), ylim = c(33.1125, 34.9), expand = FALSE)
+# 
+# time_1 <- ggplot() +
+#   geom_raster(data = df_1, aes(y=y, x=x, fill = X1635512400), interpolate = T) +
+#   scale_fill_gradientn(colours = c("blue", "cyan", "green", "yellow", "red")) +
+#   geom_sf(data = ca, color = "black", fill = "grey60") +
+#   coord_sf(xlim = c(-120.69
+```
+
