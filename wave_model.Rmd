@@ -27,6 +27,11 @@ library(rasterVis)
 library(animation)
 library(htmlwidgets)
 library(ggquiver)
+library(gganimate)
+library(REdaS)
+library(transformr)
+
+
 ```
 
 # Read in and subset data for variable and ROI
@@ -98,7 +103,10 @@ full_data <- left_join(un_data, Ta_data) %>%
 
 clean_data <- full_data %>% 
   mutate(date = as_datetime(date)) %>% 
-  mutate(height = 3.28 * height)
+  mutate(height = 3.28 * height) %>% 
+  mutate(angle = ((3.14/180)*(direction) + 0.5))
+
+
 
 
 ```
@@ -108,7 +116,7 @@ clean_data <- full_data %>%
 ```{r}
 islands <- read_sf(here("shape", "channel_islands.shp")) %>% 
   mutate(geometry = st_transform(geometry, crs = 4326)) %>% 
-  filter(!NAME %in% c("Santa Catalina", "San Clemente"))
+  filter(!NAME %in% c("Santa Catalina", "San Clemente", "Santa Barbara", "San Nicolas"))
 
 ca <- read_sf(here("s_11au16", "s_11au16.shp")) %>% 
   mutate(geometry = st_transform(geometry, crs = 4326)) %>% 
@@ -122,12 +130,33 @@ ca <- read_sf(here("s_11au16", "s_11au16.shp")) %>%
 
 ```{r}
 
+wind.arrows <- clean_data %>% 
+    filter(x %in% sort(unique(x))[c(TRUE, FALSE, FALSE, F, F, F, F, F, F, F, F)], 
+           y %in% sort(unique(y))[c(TRUE, FALSE, FALSE, F, F, F, F, F, F, F, F)])
 
-ggplot(data = clean_data) +
-  geom_raster(aes(y=y, x=x, fill = height), interpolate = T) +
+ggplot(data = clean_data, aes(frame = date)) +
+  geom_raster(aes(y=y, x=x, 
+                  fill = height), interpolate = T) +
+  geom_spoke(data = wind.arrows, aes(y=y, x=x, angle = angle, radius = scales::rescale(period, c(.02, .15))), 
+             arrow=arrow(length = unit(0.2,"cm"))) + 
   scale_fill_gradientn(colours = c("blue", "cyan", "green", "yellow", "red")) +
+  transition_states(date) +
+  labs(title = 'Date: {closest_state}') +
+  theme_classic() +
+  geom_sf(data = islands, color = "black", fill = "grey60") +
   geom_sf(data = ca, color = "black", fill = "grey60") +
-  coord_sf(xlim = c(-121.01, -118.4), ylim = c(33.55, 34.75), expand = FALSE) 
+  coord_sf(xlim = c(-121.01, -118.4), ylim = c(33.55, 34.75), expand = F) +
+  theme(axis.line=element_blank(),axis.text.x=element_blank(),
+        axis.text.y=element_blank(),axis.ticks=element_blank(),
+        panel.background=element_blank(),
+        panel.border=element_blank(),
+        panel.grid.major=element_blank(),
+        panel.grid.minor=element_blank(),
+        plot.background=element_blank(),
+        plot.margin=unit(c(0,0,0,0), "null"))
+
+
+animate(a, nframes = 40)
   
 ```
 
