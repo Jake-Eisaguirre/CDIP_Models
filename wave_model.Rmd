@@ -141,14 +141,17 @@ a <- ggplot(data = clean_data) +
                   fill = height, frame = date), interpolate = T) +
   geom_spoke(data = wind.arrows, aes(y=y, x=x, angle = angle, radius = scales::rescale(period, c(.02, .15))), 
              arrow=arrow(length = unit(0.2,"cm"))) + 
-  scale_fill_gradientn(colours = c("blue", "cyan", "green", "yellow", "red")) +
+  scale_fill_gradientn(colours = c("slategray1","skyblue", 
+                                   "royalblue1", "mediumblue", 
+                                   "magenta1", "firebrick1", "firebrick3")) +
   transition_states(date) +
   labs(title = 'Date: {closest_state}', fill = "Swell (ft)",
-       subtitle = 'Arrow Length Indicates Swell Period') +
+       subtitle = 
+        'Arrow Length Indicates Swell Period & Arrow Direction Indicates Swell Direction') +
   theme_classic() +
   xlab("Longitude") +
   ylab("Latitude") +
-  geom_sf(data = merged_shapes, color = "black", fill = "grey60") +
+  geom_sf(data = merged_shapes, color = "black", fill = "grey70") +
   coord_sf(xlim = c(-121.01, -118.4), ylim = c(33.55, 34.75), expand = F) +
   theme(axis.line=element_blank(),
         axis.ticks=element_blank(),
