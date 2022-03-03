@@ -131,8 +131,10 @@ merged_shapes <- bind_rows(ca, islands)
 ```{r}
 
 wind.arrows <- clean_data %>% 
-    filter(x %in% sort(unique(x))[c(TRUE, FALSE, FALSE, F, F, F, F, F, F, F, F)], 
-           y %in% sort(unique(y))[c(TRUE, FALSE, FALSE, F, F, F, F, F, F, F, F)])
+    filter(x %in% sort(unique(x))[c(T, F, F, F, F, F, F, F, 
+                                    F, F, F, F, F, F, F)], 
+           y %in% sort(unique(y))[c(T, F, F, F, F, F, F, F, 
+                                    F, F, F, F, F, F, F)])
 
 a <- ggplot(data = clean_data) +
   geom_raster(aes(y=y, x=x, 
@@ -141,7 +143,8 @@ a <- ggplot(data = clean_data) +
              arrow=arrow(length = unit(0.2,"cm"))) + 
   scale_fill_gradientn(colours = c("blue", "cyan", "green", "yellow", "red")) +
   transition_states(date) +
-  labs(title = 'Date: {closest_state}', fill = "Swell (ft)") +
+  labs(title = 'Date: {closest_state}', fill = "Swell (ft)",
+       subtitle = 'Arrow Length Indicates Swell Period') +
   theme_classic() +
   xlab("Longitude") +
   ylab("Latitude") +
@@ -154,7 +157,6 @@ a <- ggplot(data = clean_data) +
         panel.grid.major=element_blank(),
         panel.grid.minor=element_blank(),
         plot.background=element_blank())
-
 
 animate(a, nframes = 40, fps = 5)
 
