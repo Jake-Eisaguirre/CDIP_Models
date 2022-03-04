@@ -161,7 +161,7 @@ a <- ggplot(data = clean_data) +
         panel.grid.minor=element_blank(),
         plot.background=element_blank())
 
-animate(a, nframes = 40, fps = 5)
+animate(a, nframes = 40, fps = 5) 
 
   
 ```
