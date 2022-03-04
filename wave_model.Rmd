@@ -39,6 +39,7 @@ library(magick)
 ```{r}
 date <- as.Date(Sys.time())
   
+
 date <- as.Date(date) %>% 
   paste0("T12:00:00Z")
 
