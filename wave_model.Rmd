@@ -128,9 +128,9 @@ merged_shapes <- bind_rows(ca, islands)
 
 wind.arrows <- clean_data %>% 
     filter(x %in% sort(unique(x))[c(T, F, F, F, F, F, F, F, 
-                                    F, F, F, F, F, F, F)], 
+                                    F, F, F, F, F, F, F, F, F)], 
            y %in% sort(unique(y))[c(T, F, F, F, F, F, F, F, 
-                                    F, F, F, F, F, F, F)])
+                                    F, F, F, F, F, F, F, F, F)])
 ```
 
 ```{r}
@@ -144,10 +144,10 @@ a <- ggplot(data = clean_data) +
                                    "royalblue1", "mediumblue", 
                                    "magenta1", "firebrick1", "firebrick3")) +
   transition_states(date) +
-  labs(subtitle = 'Date: {closest_state}', 
+  labs(subtitle = "Coastal Data Information Program: N. Channel Islands Swell Models", 
        fill = "Swell (ft)",
        caption = 'Arrow Length Indicates Swell Period & Arrow Direction Indicates Swell Direction',
-       title = "Coastal Data Information Program: N. Channel Islands Swell Models") +
+       title = 'Date: {closest_state}') +
   theme_classic() +
   xlab("Longitude") +
   ylab("Latitude") +
@@ -159,12 +159,29 @@ a <- ggplot(data = clean_data) +
         panel.border=element_blank(),
         panel.grid.major=element_blank(),
         panel.grid.minor=element_blank(),
-        plot.background=element_blank())
+        plot.background=element_blank(),
+        plot.title = element_text(size = 22))
 
-animate(a, nframes = 40, fps = 4) 
+an <- animate(a, nframes = 40, fps = 4) 
 
-  
+anim_save(here("final_draft_eisaguirre.gif"), an)  
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # Clean dates and re-sample
